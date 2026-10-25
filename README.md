@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ADL
 
-## Getting Started
+Members, events and media pages in one signed-in workspace. Sign-in is email and password.
 
-First, run the development server:
+## Data
+- **Members**: name, email, region, stage on the data journey (just getting started, curious, learning, switching careers, entry, mid, professional, other), joined date, active.
+- **Events**: title, date, region, turned up, participated (never more than turned up).
+- **Media pages**: platform, handle, followers, posts, date recorded.
+- Add records in the app or import CSV or Excel (.xlsx) files; use Check file first to see repeats and problems. Overview, Reports and Datasets read the same tables. Export is at `/api/export/<dataset>`.
+- The database starts empty. No sample data is seeded.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Setup
+1. `cp .env.example .env`, then set `AUTH_SECRET` (`openssl rand -base64 32`).
+2. Set `ADL_ADMIN_EMAILS` to your email.
+3. Start the app and open `/sign-in`. While nobody has an account, it shows a **Set up ADL** screen. Create the first admin with that email and a password. The screen disappears once it is done.
+4. Add everyone else under **Team → Create an account**. ADL generates a temporary password, shown once. Send it to the person privately. They must replace it the first time they sign in.
+5. Forgot a password: an admin uses **Reset password** next to that person on the Team page. An admin who forgets their own password needs another admin to reset it. If none can sign in, delete the row from the `users` table and the setup screen returns.
+6. Production: set `AUTH_URL` (or `AUTH_TRUST_HOST=true` behind a trusted proxy) and `NEXT_PUBLIC_SITE_URL` to the public https origin, so canonical, sitemap and Open Graph URLs are correct.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Passwords are stored as salted scrypt hashes. Five wrong attempts for one email lock sign-in for that email for 15 minutes (kept in memory, so it resets if the server restarts). There is no public sign-up and no email sending, so password resets are done by an admin.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
+`npm run dev` · `npm run build && npm start` · `npm test` · `npm run typecheck` · `npm run lint`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+Data is a SQLite file at `DATABASE_URL`. Use a host with a persistent disk; serverless filesystems (such as Vercel's) are ephemeral. Back up with `sqlite3 adl.db ".backup backup.db"`.
