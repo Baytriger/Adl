@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Media pages" };
 
 export default async function MediaPage() {
   const user = await requireUser();
-  const m = mediaMetrics();
+  const m = await mediaMetrics();
   const canEdit = hasRole(user.role, "editor");
   const totalPosts = m.pages.reduce((n, p) => n + p.posts, 0);
 

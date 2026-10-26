@@ -28,7 +28,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["postgres"],
   // Tailwind v4 loader for Turbopack (from the project scaffold; required for @theme and utilities).
   turbopack: {
     rules: {

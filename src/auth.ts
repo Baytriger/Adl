@@ -14,8 +14,8 @@ class TooManyAttempts extends CredentialsSignin {
 
 const credentialsSchema = z.object({ email: z.string().trim().min(3).max(200), password: z.string().min(1).max(200) });
 
-function audit(actor: string, action: string, detail?: string) {
-  db.insert(schema.auditLog).values({ actor, action, detail }).run();
+async function audit(actor: string, action: string, detail?: string) {
+  await db.insert(schema.auditLog).values({ actor, action, detail });
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -29,21 +29,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
         if (isLocked(`email:${email}`) || isLocked(`ip:${ip}`, 30)) {
-          audit(email, "auth.locked", `More than 5 failed attempts. Try again in ${LOCK_MINUTES} minutes.`);
+          await audit(email, "auth.locked", `More than 5 failed attempts. Try again in ${LOCK_MINUTES} minutes.`);
           throw new TooManyAttempts();
         }
 
-        const user = getUserByEmail(email);
+        const user = await getUserByEmail(email);
         // Always run a password check, even for unknown emails, so timing is the same.
         const ok = await verifyPassword(parsed.data.password, user?.passwordHash);
         if (!user || !ok || !user.active) {
           recordFailure(`email:${email}`);
           recordFailure(`ip:${ip}`);
-          audit(email, "auth.failed");
+          await audit(email, "auth.failed");
           return null;
         }
         clearFailures(`email:${email}`);
-        recordLogin(user.email);
+        await recordLogin(user.email);
         return { id: user.id, email: user.email, name: user.name };
       },
     }),
@@ -57,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // account or a role change takes effect immediately.
       const email = (user?.email ?? token.email)?.toLowerCase();
       if (email) {
-        const record = getUserByEmail(email);
+        const record = await getUserByEmail(email);
         const live = record?.active && record.passwordHash;
         token.role = live ? record.role : undefined;
         token.uid = live ? record.id : undefined;

@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Team and permissions" };
 
 export default async function TeamPage() {
   const me = await requireUser("admin");
-  const people = db.select().from(schema.users).orderBy(asc(schema.users.email)).all();
+  const people = await db.select().from(schema.users).orderBy(asc(schema.users.email));
 
   return (
     <>

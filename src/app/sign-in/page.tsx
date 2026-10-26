@@ -36,7 +36,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
 
   const { error } = await searchParams;
   const message = error ? (MESSAGES[error] ?? MESSAGES.Configuration) : null;
-  const setup = setupAvailable();
+  const setup = await setupAvailable();
 
   return (
     <div className="flex min-h-screen flex-col">

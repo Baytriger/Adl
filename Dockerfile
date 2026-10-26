@@ -1,8 +1,6 @@
-# ADL: one container, data in /data (mount a persistent disk there).
+# ADL: one container. Data lives in Postgres (set DATABASE_URL), so the container itself keeps nothing.
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-# Only needed if better-sqlite3 has no prebuilt binary for the platform.
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
@@ -17,11 +15,9 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    DATABASE_URL=file:/data/adl.db \
     AUTH_TRUST_HOST=true
 COPY --from=build /app ./
-RUN mkdir -p /data && chown -R node:node /data /app
+RUN chown -R node:node /app
 USER node
-VOLUME /data
 EXPOSE 3000
 CMD ["npm", "start"]

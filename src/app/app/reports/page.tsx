@@ -57,8 +57,8 @@ export default async function ReportsPage({
   );
 }
 
-function MembersReport() {
-  const m = memberMetrics();
+async function MembersReport() {
+  const m = await memberMetrics();
   if (m.total === 0) return <EmptyState title="No members to report on" body="Import or add members first." />;
   return (
     <div className="space-y-6">
@@ -71,9 +71,9 @@ function MembersReport() {
   );
 }
 
-function EventsReport({ from, to, fromRaw, toRaw }: { from?: Date; to?: Date; fromRaw?: string; toRaw?: string }) {
-  const t = eventMetrics({ from, to });
-  const months = eventsByMonth({ from, to });
+async function EventsReport({ from, to, fromRaw, toRaw }: { from?: Date; to?: Date; fromRaw?: string; toRaw?: string }) {
+  const t = await eventMetrics({ from, to });
+  const months = await eventsByMonth({ from, to });
   return (
     <div className="space-y-6">
       <form method="get" className="flex flex-wrap items-end gap-3" aria-label="Filter by date">
@@ -108,8 +108,8 @@ function EventsReport({ from, to, fromRaw, toRaw }: { from?: Date; to?: Date; fr
   );
 }
 
-function MediaReport() {
-  const m = mediaMetrics();
+async function MediaReport() {
+  const m = await mediaMetrics();
   if (!m.pages.length) return <EmptyState title="No media pages to report on" body="Add or import media pages first." />;
   return (
     <div className="space-y-6">

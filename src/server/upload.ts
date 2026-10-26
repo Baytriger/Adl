@@ -40,11 +40,11 @@ export async function readUpload(file: File): Promise<{ table: Table; note?: str
 }
 
 /** What ADL already holds, in the shape the duplicate check needs. */
-export function loadExisting(dataset: DatasetKey): Existing {
+export async function loadExisting(dataset: DatasetKey): Promise<Existing> {
   const keys = new Set<string>();
   if (dataset === "members") {
     const names = new Map<string, string[]>();
-    for (const r of db.select({ name: members.fullName, email: members.email }).from(members).all()) {
+    for (const r of await db.select({ name: members.fullName, email: members.email }).from(members)) {
       const email = (r.email ?? "").toLowerCase();
       keys.add(rowKey("members", { email, full_name: r.name }));
       const nk = nameKey(r.name);
@@ -53,11 +53,11 @@ export function loadExisting(dataset: DatasetKey): Existing {
     return { keys, names };
   }
   if (dataset === "events") {
-    for (const r of db.select().from(events).all()) {
+    for (const r of await db.select().from(events)) {
       keys.add(rowKey("events", { title: r.title, starts_at: r.startsAt, region: r.region }));
     }
   } else {
-    for (const r of db.select().from(mediaPages).all()) {
+    for (const r of await db.select().from(mediaPages)) {
       keys.add(rowKey("media", { platform: r.platform, handle: r.handle }));
     }
   }

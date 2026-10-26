@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: "Data sources" };
 export default async function DatasetsPage() {
   const user = await requireUser();
   const canEdit = hasRole(user.role, "editor");
-  const sets = datasetOverview();
-  const runs = db.select().from(schema.importRuns).orderBy(desc(schema.importRuns.startedAt)).limit(10).all();
+  const sets = await datasetOverview();
+  const runs = await db.select().from(schema.importRuns).orderBy(desc(schema.importRuns.startedAt)).limit(10);
 
   return (
     <>

@@ -17,53 +17,49 @@ export function freshness(last: Date | null | undefined): Freshness {
 }
 
 /** Single definition of every headline metric. Dashboards and reports call these. */
-export function memberMetrics() {
-  const [{ total }] = db
-    .select({ total: sql<number>`count(*)` })
+export async function memberMetrics() {
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
     .from(members)
-    .where(eq(members.active, true))
-    .all();
-  const byRegion = db
-    .select({ label: members.region, value: sql<number>`count(*)` })
+    .where(eq(members.active, true));
+  const byRegion = await db
+    .select({ label: members.region, value: sql<number>`count(*)::int` })
     .from(members)
     .where(eq(members.active, true))
     .groupBy(members.region)
-    .orderBy(desc(sql`count(*)`))
-    .all();
-  const byLevel = db
-    .select({ label: members.level, value: sql<number>`count(*)` })
+    .orderBy(desc(sql`count(*)`));
+  const byLevel = await db
+    .select({ label: members.level, value: sql<number>`count(*)::int` })
     .from(members)
     .where(eq(members.active, true))
     .groupBy(members.level)
-    .orderBy(desc(sql`count(*)`))
-    .all();
+    .orderBy(desc(sql`count(*)`));
   return { total, byRegion, byLevel: byLevel.map((r) => ({ ...r, label: LEVEL_LABELS[r.label] ?? r.label })) };
 }
 
-export function eventMetrics(range: Range = {}) {
+export async function eventMetrics(range: Range = {}) {
   const conds = [
     range.from ? gte(events.startsAt, range.from) : undefined,
     range.to ? lte(events.startsAt, range.to) : undefined,
   ].filter(Boolean);
   const where = conds.length ? and(...conds) : undefined;
 
-  const [totals] = db
+  const [totals] = await db
     .select({
-      events: sql<number>`count(*)`,
-      turnedUp: sql<number>`coalesce(sum(${events.turnedUp}), 0)`,
-      participated: sql<number>`coalesce(sum(${events.participated}), 0)`,
+      events: sql<number>`count(*)::int`,
+      turnedUp: sql<number>`coalesce(sum(${events.turnedUp}), 0)::int`,
+      participated: sql<number>`coalesce(sum(${events.participated}), 0)::int`,
     })
     .from(events)
-    .where(where)
-    .all();
+    .where(where);
 
-  const recent = db.select().from(events).where(where).orderBy(desc(events.startsAt)).limit(200).all();
+  const recent = await db.select().from(events).where(where).orderBy(desc(events.startsAt)).limit(200);
   const participationRate = totals.turnedUp > 0 ? totals.participated / totals.turnedUp : null;
   return { ...totals, participationRate, recent };
 }
 
-export function mediaMetrics() {
-  const pages = db.select().from(mediaPages).orderBy(desc(mediaPages.followers)).all();
+export async function mediaMetrics() {
+  const pages = await db.select().from(mediaPages).orderBy(desc(mediaPages.followers));
   const followers = pages.reduce((n, p) => n + p.followers, 0);
   const lastRecorded = pages.reduce<Date | null>(
     (m, p) => (!m || p.recordedAt > m ? p.recordedAt : m),
@@ -72,51 +68,51 @@ export function mediaMetrics() {
   return { pages, followers, lastRecorded };
 }
 
-export function lastImport(dataset: string) {
-  const ok = db
+export async function lastImport(dataset: string) {
+  const [ok] = await db
     .select()
     .from(importRuns)
     .where(and(eq(importRuns.dataset, dataset), sql`${importRuns.status} != 'failed'`))
     .orderBy(desc(importRuns.startedAt))
-    .limit(1)
-    .get();
-  const attempt = db
+    .limit(1);
+  const [attempt] = await db
     .select()
     .from(importRuns)
     .where(eq(importRuns.dataset, dataset))
     .orderBy(desc(importRuns.startedAt))
-    .limit(1)
-    .get();
+    .limit(1);
   return { lastSuccess: ok?.finishedAt ?? null, lastAttempt: attempt?.startedAt ?? null, attempt };
 }
 
-export function datasetOverview() {
-  const m = memberMetrics();
-  const e = eventMetrics();
-  const md = mediaMetrics();
+export async function datasetOverview() {
+  const [m, e, md, li] = await Promise.all([
+    memberMetrics(),
+    eventMetrics(),
+    mediaMetrics(),
+    Promise.all(["members", "events", "media"].map((k) => lastImport(k))),
+  ]);
   return [
-    { key: "members", label: "Members", records: m.total, ...lastImport("members") },
-    { key: "events", label: "Events", records: e.events, ...lastImport("events") },
-    { key: "media", label: "Media pages", records: md.pages.length, ...lastImport("media") },
+    { key: "members", label: "Members", records: m.total, ...li[0] },
+    { key: "events", label: "Events", records: e.events, ...li[1] },
+    { key: "media", label: "Media pages", records: md.pages.length, ...li[2] },
   ];
 }
 
-export function eventsByMonth(range: Range = {}) {
+export async function eventsByMonth(range: Range = {}) {
   const conds = [
     range.from ? gte(events.startsAt, range.from) : undefined,
     range.to ? lte(events.startsAt, range.to) : undefined,
   ].filter(Boolean);
-  const month = sql<string>`strftime('%Y-%m', ${events.startsAt}, 'unixepoch')`;
-  return db
+  const month = sql<string>`to_char(${events.startsAt} at time zone 'UTC', 'YYYY-MM')`;
+  return await db
     .select({
       month,
-      events: sql<number>`count(*)`,
-      turnedUp: sql<number>`coalesce(sum(${events.turnedUp}), 0)`,
-      participated: sql<number>`coalesce(sum(${events.participated}), 0)`,
+      events: sql<number>`count(*)::int`,
+      turnedUp: sql<number>`coalesce(sum(${events.turnedUp}), 0)::int`,
+      participated: sql<number>`coalesce(sum(${events.participated}), 0)::int`,
     })
     .from(events)
     .where(conds.length ? and(...conds) : undefined)
     .groupBy(month)
-    .orderBy(month)
-    .all();
+    .orderBy(month);
 }

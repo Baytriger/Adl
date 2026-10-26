@@ -21,7 +21,7 @@ export default async function EventsPage({
   const sp = await searchParams;
   const from = isDate(sp.from) ? new Date(`${sp.from}T00:00:00Z`) : undefined;
   const to = isDate(sp.to) ? new Date(`${sp.to}T23:59:59Z`) : undefined;
-  const m = eventMetrics({ from, to });
+  const m = await eventMetrics({ from, to });
   const canEdit = hasRole(user.role, "editor");
   const filtered = Boolean(from || to);
 

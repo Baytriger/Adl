@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Audit log" };
 
 export default async function AuditPage() {
   await requireUser("admin");
-  const rows = db.select().from(schema.auditLog).orderBy(desc(schema.auditLog.at)).limit(200).all();
+  const rows = await db.select().from(schema.auditLog).orderBy(desc(schema.auditLog.at)).limit(200);
   return (
     <>
       <PageHeader title="Audit log" description="The 200 most recent sign-ins, imports, exports and changes to data or access." />

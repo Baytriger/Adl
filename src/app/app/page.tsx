@@ -12,10 +12,10 @@ const num = (n: number) => n.toLocaleString("en");
 
 export default async function Overview() {
   await requireUser();
-  const m = memberMetrics();
-  const e = eventMetrics();
-  const media = mediaMetrics();
-  const sets = datasetOverview();
+  const m = await memberMetrics();
+  const e = await eventMetrics();
+  const media = await mediaMetrics();
+  const sets = await datasetOverview();
   const hasAnything = m.total + e.events + media.pages.length > 0;
 
   return (

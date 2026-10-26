@@ -31,9 +31,9 @@ export default async function MembersPage({
     level ? eq(members.level, level as (typeof LEVELS)[number]) : undefined,
   );
 
-  const [{ total }] = db.select({ total: sql<number>`count(*)` }).from(members).where(where).all();
-  const rows = db.select().from(members).where(where).orderBy(desc(members.joinedAt)).limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE).all();
-  const regions = db.selectDistinct({ r: members.region }).from(members).orderBy(members.region).all().map((r) => r.r);
+  const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(members).where(where);
+  const rows = await db.select().from(members).where(where).orderBy(desc(members.joinedAt)).limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE);
+  const regions = (await db.selectDistinct({ r: members.region }).from(members).orderBy(members.region)).map((r) => r.r);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const canEdit = hasRole(user.role, "editor");
 

@@ -23,19 +23,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ dataset: string
   if (template) {
     csv = TEMPLATES[key];
   } else if (key === "members") {
-    const rows = db.select().from(schema.members).all();
+    const rows = await db.select().from(schema.members);
     csv = Papa.unparse({
       fields: ["full_name", "email", "region", "level", "joined_at"],
       data: rows.map((r) => [csvSafe(r.fullName), csvSafe(r.email), csvSafe(r.region), r.level, iso(r.joinedAt)]),
     });
   } else if (key === "events") {
-    const rows = db.select().from(schema.events).all();
+    const rows = await db.select().from(schema.events);
     csv = Papa.unparse({
       fields: ["title", "starts_at", "region", "turned_up", "participated"],
       data: rows.map((r) => [csvSafe(r.title), iso(r.startsAt), csvSafe(r.region), r.turnedUp, r.participated]),
     });
   } else {
-    const rows = db.select().from(schema.mediaPages).all();
+    const rows = await db.select().from(schema.mediaPages);
     csv = Papa.unparse({
       fields: ["platform", "handle", "url", "followers", "posts", "recorded_at"],
       data: rows.map((r) => [csvSafe(r.platform), csvSafe(r.handle), csvSafe(r.url), r.followers, r.posts, iso(r.recordedAt)]),
@@ -43,7 +43,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ dataset: string
   }
 
   if (!template) {
-    db.insert(schema.auditLog).values({ actor: user.email, action: "export.csv", target: key }).run();
+    await db.insert(schema.auditLog).values({ actor: user.email, action: "export.csv", target: key });
   }
   return new NextResponse(csv, {
     headers: {
